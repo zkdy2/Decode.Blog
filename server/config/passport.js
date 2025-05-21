@@ -69,6 +69,36 @@ passport.use(
   )
 );
 
+
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: "http://localhost:8000/api/auth/github/callback", // Обязательно с /callback в конце
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        let user = await User.findOne({ githubId: profile.id });
+
+        if (!user) {
+          user = new User({
+            githubId: profile.id,
+            full_name: profile.displayName || profile.username,
+            email: profile.emails?.[0]?.value || "no-email@example.com",
+            description: "Пока ничего о себе не писал...",
+          });
+          await user.save();
+        }
+
+        done(null, user);
+      } catch (err) {
+        done(err);
+      }
+    }
+  )
+);
+
 // Сериализация пользователя
 passport.serializeUser((user, done) => {
   done(null, user._id);
